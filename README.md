@@ -1,7 +1,9 @@
-# shear-wall-3101
+# Shear wall design (NZS3101)
 
-qns:
 
-should fy and fc be factored?
 
-what is alpha & beta1
+
+Issues:
+
+- should fy and fc be factored?
+- what is alpha & beta1
