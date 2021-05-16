@@ -27,7 +27,7 @@ def img_to_bytes(img_path):
 st.set_page_config(
      page_title='Techos.io | Shear wall to NZS3101 (Experimental!)',
      layout="wide",
-     initial_sidebar_state="expanded",
+     initial_sidebar_state="expanded",   
 )
 
 
@@ -49,7 +49,7 @@ st.sidebar.markdown("---")
 
 c1,c2 = st.sidebar.beta_columns([2,1])
 with c2:    
-    st.image('./techos_logo.png', width=50)
+    st.image('./techos_logo_white.svg', width=50)
 with c1:
     # st.markdown('''
     # <small>[techos.io]()</small>
