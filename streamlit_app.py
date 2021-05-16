@@ -30,7 +30,8 @@ st.set_page_config(
      initial_sidebar_state="expanded",
 )
 
-st.sidebar.markdown("Experimental web-app for design of shear wall to NZS3101.")
+
+st.sidebar.markdown("Experimental web-app for design of shear wall to NZS3101. **WIP**")
 st.sidebar.markdown("Everything here is entirely untested, so not to be for anything other than play! 😵")
 st.sidebar.markdown("Code is [here](https://github.com/aegis1980/shear-wall-3101). If you find an error or add a feature, **please** make a pull request.")     
 st.sidebar.markdown('''
@@ -43,8 +44,22 @@ st.sidebar.markdown("[2. Design actions](#design-actions)")
 st.sidebar.markdown("[3. Wall dimensions](#dims)")
 st.sidebar.markdown("[4. Concrete properties](#concrete)")
 st.sidebar.markdown("[5. Reinforcement properties](#reo)")
-st.sidebar.markdown("---")
 st.sidebar.markdown("[Results](#results)")
+st.sidebar.markdown("---")
+
+c1,c2 = st.sidebar.beta_columns([2,1])
+with c2:    
+    st.image('./techos_logo.png', width=50)
+with c1:
+    # st.markdown('''
+    # <small>[techos.io]()</small>
+    # ''', unsafe_allow_html=True)
+    st.markdown('''
+    <small>(c)2021 Jon Robinson</small>
+    ''', unsafe_allow_html=True)
+    st.markdown('''
+    <small>MIT license.</small>
+    ''', unsafe_allow_html=True)
 
 st.subheader('Analysis type')
 atype=st.selectbox(label ='Select analysis type', options = ['Elastic', 'Limited ductile', 'Fully ductile'])
@@ -119,6 +134,14 @@ fig.update_layout(
     xaxis_title="Moment/ kNm",
     yaxis_title="Axial/ kN",
     showlegend=False
+)
+
+fig.update_xaxes(
+    fixedrange=True
+)
+
+fig.update_yaxes(
+    fixedrange=True
 )
 
 st.header ('Results')

@@ -1,9 +1,6 @@
 # Shear wall design (NZS3101)
 
-
-
-
 Issues:
 
-- should fy and fc be factored?
+- fy and fc are unfactored in equilbruim optimisation.
 - what is alpha & beta1

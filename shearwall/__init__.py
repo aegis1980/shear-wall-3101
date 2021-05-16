@@ -184,7 +184,7 @@ class ShearWall:
         return self.a1,self.b1
 
 
-    def solve(self,limit: float =0.1) -> int:
+    def solve(self,limit: float =0.1, x0 : float =None) -> int:
         a1, b1 = self.calc_a1_b1()
         n_bars = len(self.bar_x)
         self.logs.append(f'Number of bars {n_bars}')
@@ -197,7 +197,17 @@ class ShearWall:
 
         Cc =0
 
-        def solve_fn(x, report = False):
+        def solve_fn(x : float, report = False):
+            """
+            Calculate total axis force for given n.a. position.
+
+            Args:
+                x (float): (assumed) n.a. position
+                report (bool, optional): Defaults to False, for optimisation. Set to True to gt solution meta-data (with x = x_solution)
+
+            Returns:
+                float: net forces in wall section
+            """
             for i in range(n_bars):
                 tension[i] = self.bar_x[i] > x
                
@@ -220,7 +230,9 @@ class ShearWall:
             else:
                 return tension, e_s, f_s, F_s, M_s, Ts, Cc, Ms
         
-        x_na = fsolve(solve_fn,[self.l_w/2])[0]
+
+        x0 = x0 or self.l_w/2
+        x_na = fsolve(solve_fn,[x0])[0]
 
         tension, e_s, f_s, F_s, M_s, Ts, Cc, Ms = solve_fn(x_na,True)
 
@@ -228,7 +240,7 @@ class ShearWall:
 
         self.th_Mn= 0.85 *(Ms + Mn)
         
-        return self.th_Mn
+        return x_na,self.th_Mn
 
     def shear(self):
         v_n = 1000 * self.Vu /(0.75 * 0.8 * self.t * self.l_w)
@@ -259,6 +271,7 @@ def interaction_curve(
     n=0
     count = 0
     count_limit = 20
+    last_x_na : float = None # use this to seed the next solve - should be quicker?
     while True:        
         sw = ShearWall(
             atype=atype,
@@ -275,7 +288,7 @@ def interaction_curve(
         )
         sw.update()
         last_m = m
-        m = sw.solve(limit = 1)
+        last_x_na, m = sw.solve(limit = 1, x0 = last_x_na)
         if last_m<m: 
             count_limit += 1
         N.append(n)
