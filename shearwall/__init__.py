@@ -31,6 +31,8 @@ class ShearWall:
            c_end: int, 
            N_u: float,
            atype: int,
+           h_n: int = None,
+           h_w: int = None,
            N_o: float = None,
            f_yt : int = None,
            f_ys : int = None,
@@ -46,6 +48,9 @@ class ShearWall:
             self.s_v = s_v
             self.n_l :int= n_l
             self.c_end : int = c_end 
+            self.h_w : int = h_w  # total height of wall
+            self.h_n : int = h_n or h_w # clear vertical height of wall
+
             self.N_u  = N_u # Design ULS axial load
             self.N_o = N_o # Design axial load (overstrength)
             self.atype = atype # analysis type
@@ -63,7 +68,7 @@ class ShearWall:
         self.check_sv_max()
         self.calc_barpositions()
         self.calc_a_s()
-        self.calc_rho_n()
+        self.calc_p_l()
         self.check_rho_nmin()
         self.check_rho_nmax()
         self.check_axial_overstrength()
@@ -153,16 +158,16 @@ class ShearWall:
             self.bar_x.append(x)
         
 
-    def calc_rho_n(self):
+    def calc_p_l(self):
         """
         Reo ratio
 
         Returns:
             [type]: [description]
         """
-        self.rho_n = self.a_s/(self.t*self.l_w)
-        self.logs.append(f'Vertical reo ratio {self.rho_n}')
-        return self.rho_n
+        self.p_l = self.a_s/(self.t*self.l_w)
+        self.logs.append(f'Vertical reo ratio {self.p_l}')
+        return self.p_l
 
 
     def check_rho_nmin(self) -> bool:
@@ -178,10 +183,10 @@ class ShearWall:
         r3 = 0.0014 #TODO ditto
         rho_min = max(r1,r2,r3)
 
-        if (self.rho_n <=0):
+        if (self.p_l <=0):
             self.error.append('Something wrong with checking min vertical reo ratio')
             return False
-        elif self.rho_n < rho_min:
+        elif self.p_l < rho_min:
             self.errors.append('cl11.3.12.3(c) Vertical reo area < min allowable')
             return False
         self.logs.append('cl11.3.12.3(c) Vertical reo ratio > min allowed. ok.')
@@ -198,7 +203,7 @@ class ShearWall:
 
         r1 = 16/self.f_y
 
-        if self.rho_n > r1:
+        if self.p_l > r1:
             self.error.append('cl11.3.12.3(b) Vertical reo area > max allowable')
             return False
         return True
@@ -236,10 +241,16 @@ class ShearWall:
         if self.atype is ELASTIC:
             return True
 
-        a_r=1
+        a=1
         b = 5 if self.atype== LIMITED_DUCTILE else 7
-        k_m = 1
-         
+        k_m =  min(1,self.h_n / (0.25 + 0.055*self.h_w/self.l_w)*self.l_w) if self.h_n else 1 
+        ep = max(1,0.3 -  (self.p_l*self.f_y)/(2.5*self.f_c))
+        t_min = (a * k_m * b * (self.h_w/self.l_w + 2)* self.l_w) / (1700 * math.sqrt(ep))
+
+        if self.t < t_min:
+            self.errors.append(f'cl11.4.3.2 Wall less than $t_m = {int(t_min)}mm$')
+            return False
+        return True
 
 
     def calc_a1_b1(self):
@@ -337,7 +348,7 @@ def interaction_curve(
     s_v : int,
     n_l:int,
     c_end: int, 
-    atype: AnalysisType = AnalysisType.LIMITED_DUCTILE,
+    atype: int,
     f_yt : int = None
 ) -> Tuple[List[float],List[float]]:
 
@@ -361,7 +372,7 @@ def interaction_curve(
             s_v=s_v,
             n_l=n_l,
             c_end=c_end,
-            axial_load=n
+            N_u=n
         )
         sw.update()
         last_m = m
