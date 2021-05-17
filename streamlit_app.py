@@ -1,8 +1,13 @@
 from pathlib import Path
 import base64
-from shearwall import ShearWall,AnalysisType, BAR_SIZES, interaction_curve
+
 import streamlit as st
 import plotly.graph_objects as go
+
+from shearwall import ShearWall, BAR_SIZES, interaction_curve
+import tooltips
+
+A_TYPES = ['Elastic', 'Limited ductile', 'Fully ductile']
 
 def str_to_int(in_str : str):
     try:
@@ -62,7 +67,7 @@ with c1:
     ''', unsafe_allow_html=True)
 
 st.subheader('Analysis type')
-atype=st.selectbox(label ='Select analysis type', options = ['Elastic', 'Limited ductile', 'Fully ductile'])
+atype_str : str=st.selectbox(label ='Select analysis type', options = A_TYPES)
 
 st.subheader('Design actions')
 n_column, m_column, v_column = st.beta_columns(3)
@@ -76,12 +81,13 @@ with v_column:
     shear = st.number_input(label='ULS Shear (kN)',value =300)
 
 st.subheader('Wall dimensions', anchor = 'dims')
-t_column, l_column , blank1= st.beta_columns(3)  
+t_column, l_column , hw_column= st.beta_columns(3)  
 with t_column:
     t = st.number_input(label='Enter wall thickness (mm)',value =200)
 with l_column:
     l_w = st.number_input(label='Enter wall length (mm)', value = 3000)
-    
+with hw_column:
+    h_w = st.number_input(label='Enter wall height (mm)', value = 2800, help = tooltips.WALL_HEIGHT)    
 
 st.subheader('Concrete properties', anchor = 'concrete')
 fc_column, c_column , blank2= st.beta_columns(3)
@@ -90,7 +96,7 @@ with fc_column:
 with c_column:
     c_end = st.number_input(label='Cover to steel (mm)', value = 40)
 
-st.subheader('Reinforcment properties', anchor = 'reo')
+st.subheader('Reinforcement properties', anchor = 'reo')
 v_column, h_column, s_column = st.beta_columns(3)
 with v_column:
     st.markdown('**Vertical steel**')
@@ -111,7 +117,7 @@ with s_column:
 
 
 m,n = interaction_curve(
-    atype=atype,
+    atype=A_TYPES.index(atype_str),
     t = t, 
     l_w = l_w,
     f_c=f_c,
@@ -121,7 +127,8 @@ m,n = interaction_curve(
     d_s=d_s,
     s_v=s_v,
     n_l=n_l,
-    c_end=c_end
+    c_end=c_end,
+    h_w = h_w
 )
 
 

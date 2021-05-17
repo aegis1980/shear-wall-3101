@@ -9,7 +9,7 @@ DEFAULTS ={
     'sci_v' : 0.75
 }
 
-ELASTIC=0,
+ELASTIC=0
 LIMITED_DUCTILE=1
 FULLY_DUCTILE =2
 
@@ -218,7 +218,7 @@ class ShearWall:
         Returns:
             bool: True if a pass (or elastic). False if fails check.
         """
-        if self.atype is ELASTIC:
+        if self.atype ==ELASTIC:
             return True
 
         if not self.N_o:
@@ -238,7 +238,7 @@ class ShearWall:
         Returns: 
             bool: True if a pass (or elastic). False if fails check.
         """
-        if self.atype is ELASTIC:
+        if self.atype==ELASTIC:
             return True
 
         a=1
@@ -349,6 +349,7 @@ def interaction_curve(
     n_l:int,
     c_end: int, 
     atype: int,
+    h_w : int, 
     f_yt : int = None
 ) -> Tuple[List[float],List[float]]:
 
@@ -372,7 +373,8 @@ def interaction_curve(
             s_v=s_v,
             n_l=n_l,
             c_end=c_end,
-            N_u=n
+            N_u=n,
+            h_w=h_w
         )
         sw.update()
         last_m = m
