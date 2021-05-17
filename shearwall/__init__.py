@@ -62,6 +62,7 @@ class ShearWall:
         self.calc_a_s()
         self.calc_rho_n()
         self.check_rho_nmin()
+        self.check_rho_nmax()
 
 
     def check_d_bl(self) -> int:
@@ -69,6 +70,10 @@ class ShearWall:
         bar diameter check
 
         """
+        if self.d_bl <10:
+            self.d_bl = 10
+            self.warnings.append(f'cl11.3.12.2(b) Longitudinal bars cannot be < 10mm in diameter. Diameter increased to 10mm')
+
         max_d: int = int(self.t/10)
         if self.atype == AnalysisType.ELASTIC:
             max_d  = int(self.t/7)
@@ -93,12 +98,18 @@ class ShearWall:
 
 
     def check_sv_max(self):
+        """
+        11.3.12.2 Refer placement of reo in walls
+
+        Returns:
+            [type]: [description]
+        """
         s1 = 3 * self.t
-        s2 = 450
+        s2 = 300
         smax= max(s1,s2)
         if self.s_v > smax :
             self.s_v = smax
-            self.warnings.append("Vertical spacing limited to lesser of (3 x wall thickness) & 450mm")
+            self.warnings.append("cl11.3.12.2(c) Vertical spacing limited to lesser of (3 x wall thickness) & 300mm")
             self.warnings.append(f'Spacing reduced to {smax}')
             return False
         return True
@@ -149,20 +160,44 @@ class ShearWall:
         return self.rho_n
 
 
-    def check_rho_nmin(self):
-        r1 = math.sqrt(self.f_c/(4*self.f_y))
-        r2 = 0.7/self.f_y
-        r3 = 0.0014
+    def check_rho_nmin(self) -> bool:
+        """
+        Refer cl 11.2.12.3 Minimum (and maximum) area of reinforcement.
+
+        Returns:
+            bool: True if a pass. False if not.
+        """
+
+        r1 = math.sqrt(self.f_c/(4*self.f_y)) #ref 11.3.12.3
+        r2 = 0.7/self.f_y #TODO does this still apply
+        r3 = 0.0014 #TODO ditto
         rho_min = max(r1,r2,r3)
 
         if (self.rho_n <=0):
             self.error.append('Something wrong with checking min vertical reo ratio')
             return False
         elif self.rho_n < rho_min:
-            self.errors.append('Vertical reo area < min allowable')
+            self.errors.append('cl11.3.12.3(c) Vertical reo area < min allowable')
             return False
-        self.logs.append('Vertical reo ratio > min allowed. ok.')
+        self.logs.append('cl11.3.12.3(c) Vertical reo ratio > min allowed. ok.')
         return True
+
+
+    def check_rho_nmax(self):
+        """
+        Refer cl 11.2.12.3 Minimum (and maximum) area of reinforcement.
+
+        Returns:
+            bool: True if a pass. False if not.
+        """
+        
+        r1 = 16/self.f_y
+
+        if self.rho_n > r1:
+            self.error.append('cl11.3.12.3(b) Vertical reo area > max allowable')
+            return False
+        return True
+
 
 
     def calc_a1_b1(self):
