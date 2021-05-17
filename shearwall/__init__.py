@@ -9,13 +9,12 @@ DEFAULTS ={
     'sci_v' : 0.75
 }
 
-class AnalysisType(Enum):
-    ELASTIC=0,
-    LIMITED_DUCTILE=1,
-    FULLY_DUCTILE =2,
+ELASTIC=0,
+LIMITED_DUCTILE=1
+FULLY_DUCTILE =2
 
-BAR_SIZES = [6, 8, 10, 12, 16, 20 ,36, 40]
-WALLTYPES  = ['Elastic', 'Limited ductile', 'Fully ductile']
+BAR_SIZES = [10, 12, 16, 20 ,36, 40] # min bar size 10mm cl 11.3.12.2(b)
+WALLTYPES  = ['Elastic', 'Limited ductile', 'Ductile']
 
 class ShearWall:
 
@@ -30,22 +29,26 @@ class ShearWall:
            s_v : int,
            n_l:int,
            c_end: int, 
-           axial_load: float = 0,
-           atype: AnalysisType = AnalysisType.LIMITED_DUCTILE,
+           N_u: float,
+           atype: int,
+           N_o: float = None,
            f_yt : int = None,
+           f_ys : int = None,
         ):
             self.l_w = l_w
             self.t = t
             self.f_c  =f_c
             self.f_y = f_y
             self.f_yt = f_yt or f_y
-            self.d_bl = d_bl
+            self.f_ys = f_ys or f_y
+            self.d_bl = d_bl # dia of vertical bars
             self.d_s = d_s # dia of stirrups
             self.s_v = s_v
             self.n_l :int= n_l
             self.c_end : int = c_end 
-            self.Nu  = axial_load
-            self.atype = atype
+            self.N_u  = N_u # Design ULS axial load
+            self.N_o = N_o # Design axial load (overstrength)
+            self.atype = atype # analysis type
 
 
 
@@ -54,7 +57,7 @@ class ShearWall:
 
         self.warnings : List[str] = [] # warnings mean something has been changed to meet requirements. 
         self.logs : List[str] = [] 
-        self.errors : List[str] = [] # errors terminate solver
+        self.errors : List[str] = [] # TODO errors terminate solver
 
         self.check_d_bl()
         self.check_sv_max()
@@ -63,6 +66,8 @@ class ShearWall:
         self.calc_rho_n()
         self.check_rho_nmin()
         self.check_rho_nmax()
+        self.check_axial_overstrength()
+        self.check_min_thickness()
 
 
     def check_d_bl(self) -> int:
@@ -75,10 +80,10 @@ class ShearWall:
             self.warnings.append(f'cl11.3.12.2(b) Longitudinal bars cannot be < 10mm in diameter. Diameter increased to 10mm')
 
         max_d: int = int(self.t/10)
-        if self.atype == AnalysisType.ELASTIC:
+        if self.atype == ELASTIC:
             max_d  = int(self.t/7)
             msg = "For elastic analysis, bar dia limited to (wall thickness / 7)"
-        elif self.atype == AnalysisType.LIMITED_DUCTILE:
+        elif self.atype == LIMITED_DUCTILE:
             max_d = int(self.t/8)
             msg = "For limited ductile analysis, bar dia limited to (wall thickness / 8)"
         else: 
@@ -190,7 +195,7 @@ class ShearWall:
         Returns:
             bool: True if a pass. False if not.
         """
-        
+
         r1 = 16/self.f_y
 
         if self.rho_n > r1:
@@ -198,6 +203,43 @@ class ShearWall:
             return False
         return True
 
+
+    def check_axial_overstrength(self) -> bool:
+        """
+        Applies only to limited ductile and ductile wall
+        and appled to design axial load from overstrength
+        Refer to cl 11.4.1.1
+
+        Returns:
+            bool: True if a pass (or elastic). False if fails check.
+        """
+        if self.atype is ELASTIC:
+            return True
+
+        if not self.N_o:
+            self.warnings.append('cl11.4.1.1 Max axial action of ductile wall could not be checked as $N_O^*$ not set')
+            return True
+
+        if self.N_o > 0.3 * self.t * self.l_w:
+            self.errors.append("cl11.4.1.1 Design overstrength axial load exceeds limit,  $N_O^* > 0.3 A_g f'_c$")
+            return False
+        return True
+
+    def check_min_thickness(self) -> bool:
+        """
+        To safegarud against buckling prior to plastic region developing.
+        Only applies to limited ductile and ductile wall.
+
+        Returns: 
+            bool: True if a pass (or elastic). False if fails check.
+        """
+        if self.atype is ELASTIC:
+            return True
+
+        a_r=1
+        b = 5 if self.atype== LIMITED_DUCTILE else 7
+        k_m = 1
+         
 
 
     def calc_a1_b1(self):
@@ -261,7 +303,7 @@ class ShearWall:
             Ms = sum(M_s)
             
             if not report:
-                return (Ts+ self.Nu) - Cc # for force equilbirum
+                return (Ts+ self.N_u) - Cc # for force equilbirum
             else:
                 return tension, e_s, f_s, F_s, M_s, Ts, Cc, Ms
         
@@ -271,7 +313,7 @@ class ShearWall:
 
         tension, e_s, f_s, F_s, M_s, Ts, Cc, Ms = solve_fn(x_na,True)
 
-        Mn = self.Nu*(0.5*self.l_w - (0.5 * b1* x_na))/1000
+        Mn = self.N_u*(0.5*self.l_w - (0.5 * b1* x_na))/1000
 
         self.th_Mn= 0.85 *(Ms + Mn)
         
