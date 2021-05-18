@@ -2,5 +2,5 @@
 
 Issues:
 
-- fy and fc are unfactored in equilbruim optimisation.
+- $fy$ and $fc$ are unfactored in equilbruim optimisation.
 - what is alpha & beta1

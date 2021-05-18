@@ -1,4 +1,5 @@
 
+from cmath import sqrt
 from typing import List, Tuple
 import math 
 from enum import Enum
@@ -350,6 +351,9 @@ class ShearWall:
         v_n = 1000 * self.Vu /(0.75 * 0.8 * self.t * self.l_w)
         v_max = min(0.2 * self.f_c,8)
         Vc = 0
+
+        def eqn11_14():
+            return 0.27 *math.sqrt(self.f_c) + 1000*self.Nu/(4*self.t*self.l_w)
 
 
 # - [] - - [] - - [] - - [] - - [] - - [] - - [] - - [] - - [] - - [] - - [] - - [] - - [] - - [] - - [] - - [] -
