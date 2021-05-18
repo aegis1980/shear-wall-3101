@@ -116,7 +116,14 @@ with s_column:
     f_ys = st.number_input(label='Stirrups yield strength (MPa)', value = 500)
 
 
-m,n = interaction_curve(
+st.header ('Results')
+gph_column, res_column = st.beta_columns(2)
+
+with gph_column:    
+    st.subheader('Interaction curve')
+    show_all_curve = st.checkbox(label = 'Include curve where axial load limit exceed', value = False, help = tooltips.FULL_CURVE)
+
+m,n,m_notok, n_notok = interaction_curve(
     atype=A_TYPES.index(atype_str),
     t = t, 
     l_w = l_w,
@@ -134,28 +141,35 @@ m,n = interaction_curve(
 
 fig = go.Figure()
 
-fig.add_trace(go.Scatter(x =m,y=n,mode= 'lines' ))
-fig.add_trace(go.Scatter(x = [moment], y = [axial], mode='markers'))        
+fig.add_trace(go.Scatter(name="Interaction boundary", x =m,y=n,mode= 'lines' , line=go.scatter.Line(color="blue", width=2)))
+if show_all_curve:
+    fig.add_trace(go.Scatter(name = "Limit exceeded", x=m_notok, y= n_notok, line=go.scatter.Line(color="blue",width=1,dash="dot" )))
+fig.add_trace(go.Scatter(
+    x = [moment], 
+    y = [axial], 
+    mode='markers', 
+    marker = go.scatter.Marker(size=12,color = "red", line =dict(width=2,
+                                        color='DarkSlateGrey'))))        
 
 fig.update_layout(
     xaxis_title="Moment/ kNm",
     yaxis_title="Axial/ kN",
-    showlegend=False
+    showlegend=False,
+    margin=dict(l=20, r=20, t=20, b=20),
 )
 
+
 fig.update_xaxes(
-    fixedrange=True
+    fixedrange=True,
+    rangemode="nonnegative"
 )
 
 fig.update_yaxes(
-    fixedrange=True
+    fixedrange=True,
+    rangemode="nonnegative"
 )
 
-st.header ('Results')
-
-gph_column, res_column = st.beta_columns(2)
 with gph_column:    
-    st.subheader('Interaction curve')
     st.plotly_chart(fig, use_container_width= True)
 
 

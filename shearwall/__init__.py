@@ -5,9 +5,11 @@ from enum import Enum
 
 from scipy.optimize import fsolve
 
-DEFAULTS ={
-    'sci_v' : 0.75
-}
+"""cl2.3.2.2 Strength reduction factors """
+PHI_V = 0.75
+PHI = 0.85 # general
+PHI_SINGLE = 0.7 # single-reinforced.
+
 
 ELASTIC=0
 LIMITED_DUCTILE=1
@@ -36,6 +38,7 @@ class ShearWall:
            N_o: float = None,
            f_yt : int = None,
            f_ys : int = None,
+    
         ):
             self.l_w = l_w
             self.t = t
@@ -55,6 +58,7 @@ class ShearWall:
             self.N_o = N_o # Design axial load (overstrength)
             self.atype = atype # analysis type
 
+            self._auto_update: bool = False
 
 
     def update(self):
@@ -71,6 +75,7 @@ class ShearWall:
         self.calc_p_l()
         self.check_rho_nmin()
         self.check_rho_nmax()
+        self.check_axial_uls()
         self.check_axial_overstrength()
         self.check_min_thickness()
 
@@ -209,11 +214,22 @@ class ShearWall:
         return True
 
 
+    def check_axial_uls(self) -> bool:
+        phi = PHI if self.n_l > 1 else PHI_SINGLE
+        self.N_umax = 0.3 * phi * self.f_c * self.l_w * self.t /1000 #kN
+        if self.N_umax < self.N_u:
+            self.errors.append(f'cl11.3.1.6 ULS axial design load exceeds permissible limit, ${int(self.N_umax)}kN$')   
+            return False
+        return True
+
+
+
     def check_axial_overstrength(self) -> bool:
         """
         Applies only to limited ductile and ductile wall
         and appled to design axial load from overstrength
         Refer to cl 11.4.1.1
+        TODO implement o/s in front-end
 
         Returns:
             bool: True if a pass (or elastic). False if fails check.
@@ -353,13 +369,15 @@ def interaction_curve(
     f_yt : int = None
 ) -> Tuple[List[float],List[float]]:
 
-    N = []
-    M = []
+    N_ok = []
+    M_ok = []
+    N_notok = []
+    M_notok = []
     m=0
     last_m = 0
     n=0
     count = 0
-    count_limit = 20
+    count_limit = 100 
     last_x_na : float = None # use this to seed the next solve - should be quicker?
     while True:        
         sw = ShearWall(
@@ -375,20 +393,29 @@ def interaction_curve(
             c_end=c_end,
             N_u=n,
             h_w=h_w
+            
         )
         sw.update()
+       
+        last_x_na, m = sw.solve(limit = 0.5, x0 = last_x_na)
+            
         last_m = m
-        last_x_na, m = sw.solve(limit = 1, x0 = last_x_na)
-        if last_m<m: 
-            count_limit += 1
-        N.append(n)
-        M.append(m)
-        n +=500
-        count +=1
+        # a bit crappy: upper limit on N_ULS
+        if sw.N_umax < n:
+            N_ok.append(sw.N_umax)
+            N_notok.append(n)
+            M_notok.append(m)
+        else:
+            N_ok.append(n)
 
+        M_ok.append(m)
+        n +=sw.N_umax/20 # TODO be a bit smarter with this increment. 
+        count +=1
         if count>count_limit or m<0:
             break
-    return M,N
+
+
+    return M_ok,N_ok, M_notok, N_notok
 
 
 
