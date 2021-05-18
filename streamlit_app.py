@@ -36,7 +36,7 @@ st.set_page_config(
 )
 
 
-st.sidebar.markdown("Experimental web-app for design of shear wall to NZS3101. **WIP**")
+st.sidebar.markdown("Experimental web-app for design of shear wall to NZS3101:2016 (Amendment 3). **WIP**")
 st.sidebar.markdown("Everything here is entirely untested, so not to be for anything other than play! 😵")
 st.sidebar.markdown("Code is [here](https://github.com/aegis1980/shear-wall-3101). If you find an error or add a feature, **please** make a pull request.")     
 st.sidebar.markdown('''
@@ -145,11 +145,15 @@ fig.add_trace(go.Scatter(name="Interaction boundary", x =m,y=n,mode= 'lines' , l
 if show_all_curve:
     fig.add_trace(go.Scatter(name = "Limit exceeded", x=m_notok, y= n_notok, line=go.scatter.Line(color="blue",width=1,dash="dot" )))
 fig.add_trace(go.Scatter(
-    x = [moment], 
-    y = [axial], 
-    mode='markers', 
-    marker = go.scatter.Marker(size=12,color = "red", line =dict(width=2,
-                                        color='DarkSlateGrey'))))        
+        x = [moment], 
+        y = [axial], 
+        mode='markers', 
+        marker = go.scatter.Marker(size=12,color = "red", line =dict(width=2,
+                                            color='DarkSlateGrey')),
+        hovertemplate =
+        '<b>Nu</b>: %{y}kN'+
+        '<br><b>Mu</b>: %{x}kNm'                               
+     ))        
 
 fig.update_layout(
     xaxis_title="Moment/ kNm",
@@ -160,13 +164,16 @@ fig.update_layout(
 
 
 fig.update_xaxes(
+    showgrid=False,
     fixedrange=True,
-    rangemode="nonnegative"
+    rangemode="nonnegative",
+    range = [0,max(m)*1.1]
 )
 
 fig.update_yaxes(
+    showgrid=False,
     fixedrange=True,
-    rangemode="nonnegative"
+    rangemode="nonnegative",
 )
 
 with gph_column:    
